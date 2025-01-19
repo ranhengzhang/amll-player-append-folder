@@ -17,22 +17,27 @@ import React from "react";
 
 const WARN_TAG = chalk.bgHex("#ee6900").hex("#FFFFFF")(" WARN ");
 const INFO_TAG = chalk.bgHex("#4764e0").hex("#FFFFFF")(" INFO ");
-const  LOG_TAG = chalk.bgHex("#36a3c9").hex("#FFFFFF")(" INFO ");
+const  LOG_TAG = chalk.bgHex("#36a3c9").hex("#FFFFFF")(" LOG ");
 const NAME_TAG = chalk.bgHex("#8b8d98").hex("#FFFFFF")(" SONG ");
+
+function getChalk(bg: string, fg: string, func: string) {
+    return chalk.bgHex(bg).hex(fg)(` ${func} `);
+}
 
 export function consoleLog(type: string, func: string, info: string) {
 
+    const FUNC_TAG = getChalk("#ff587c", "#FFFFFF", func);
     if (type === "INFO") {
-        console.log(NAME_TAG + INFO_TAG, func + "::" + info)
+        console.log(NAME_TAG + INFO_TAG + FUNC_TAG, info)
 
     } else if (type === "WARN") {
-        console.log(NAME_TAG + WARN_TAG, func + "::" + info)
+        console.log(NAME_TAG + WARN_TAG + FUNC_TAG, info)
 
     } else if (type === "LOG") {
-        console.log(NAME_TAG + LOG_TAG, func + "::" + info)
+        console.log(NAME_TAG + LOG_TAG + FUNC_TAG, info)
 
     } else {
-        console.log(NAME_TAG + WARN_TAG, func + "::" + info)
+        console.log(NAME_TAG + NAME_TAG + FUNC_TAG, info)
     }
 
 }
@@ -94,7 +99,7 @@ export const SettingPage: FC = () => {
 
             try {
                 // 读取目录内容
-                consoleLog('INFO', 'folder', folderPath);
+                consoleLog('LOG', 'folder', folderPath);
                 const files = await readDir(folderPath);
                 // 遍历文件和文件夹
                 for (let file of files) {
@@ -105,7 +110,7 @@ export const SettingPage: FC = () => {
                         } else if (file.isFile && isAudioFile(file.name)) {
                             // 如果是音频文件，加入结果
                             foundAudioFiles.push(fullPath);
-                            consoleLog('INFO', 'file', fullPath);
+                            consoleLog('LOG', 'file', fullPath);
                             toast.update(fid, {
                                 render: <>扫描到文件<br/>{fullPath}</>,
                             });
