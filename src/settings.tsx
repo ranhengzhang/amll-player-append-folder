@@ -82,6 +82,8 @@ export const SettingPage: FC = () => {
                 folderPath = folderPath.replace(/\\/gi, "/");
             }
 
+            toast.update(sid, <>开始扫描文件夹<br/>{folderPath}</>, )
+
             try {
                 // 读取目录内容
                 consoleLog('INFO', 'path', folderPath);
@@ -96,7 +98,7 @@ export const SettingPage: FC = () => {
                             // 如果是音频文件，加入结果
                             foundAudioFiles.push(fullPath);
                             consoleLog('INFO', 'file', fullPath);
-                            toast.info(<>扫描到文件<br/>{fullPath}</>,);
+                            toast.update(fid, <>扫描到文件<br/>{fullPath}</>,);
                         }
                 }
             } catch (err) {
@@ -105,9 +107,11 @@ export const SettingPage: FC = () => {
             }
         }
 
-        const sid = toast.loading(<>开始扫描文件夹<br/>{folder}</>,)
-        await scanFiles(folder)
-        toast.done(sid)
+        const sid = toast.info('', );
+        const fid = toast.loading('', );
+        await scanFiles(folder);
+        toast.done(sid);
+        toast.done(fid);
 
         async function appendFiles() {
             let current = 0;
