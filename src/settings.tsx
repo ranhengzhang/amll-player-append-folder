@@ -66,12 +66,12 @@ export const SettingPage: FC = () => {
             await exists(folder)
         } catch (e) {
             toast.warning(<>错误的文件夹路径<br/>{folder}</>,);
-            return consoleLog('WARN', 'folder', `错误的文件夹路径：${folder}`);
+            return consoleLog('WARN', 'path', `错误的文件夹路径：${folder}`);
         }
         const fileInfo = await stat(folder)
         if (!fileInfo.isDirectory) {
             toast.warning(<>不是文件夹<br/>{folder}</>,);
-            return consoleLog('WARN', 'folder', `不是文件夹：${folder}`);
+            return consoleLog('WARN', 'path', `不是文件夹：${folder}`);
         }
 
         const foundAudioFiles: string[] = [];
@@ -94,7 +94,7 @@ export const SettingPage: FC = () => {
 
             try {
                 // 读取目录内容
-                consoleLog('INFO', 'path', folderPath);
+                consoleLog('INFO', 'folder', folderPath);
                 const files = await readDir(folderPath);
                 // 遍历文件和文件夹
                 for (let file of files) {
@@ -133,12 +133,12 @@ export const SettingPage: FC = () => {
                 await Promise.all(
                     foundAudioFiles.map(async (v) => {
                         let normalized = v;
-                        console.log(v);
+                        // console.log(v);
                         if (platform() !== "android" && platform() !== "ios") {
                             normalized = (await path.normalize(v)).replace(/\\/gi, "/");
                         }
                         try {
-                            // console.log(await stat(v));
+                            consoleLog('INFO', 'song', JSON.stringify(await stat(v)));
                             const pathMd5 = md5(normalized);
                             const musicInfo = await readLocalMusicMetadata(normalized);
 
@@ -160,8 +160,8 @@ export const SettingPage: FC = () => {
                         } catch (err) {
                             errored += 1;
                             faliedList.push(normalized);
-                            consoleLog("WARN", normalized, "解析歌曲元数据以添加歌曲失败" + err);
-                            console.log(err);
+                            consoleLog("WARN", 'file', normalized + "解析歌曲元数据以添加歌曲失败\n" + err);
+                            // console.log(err);
                             return null;
                         } finally {
                             current += 1;
@@ -188,7 +188,7 @@ export const SettingPage: FC = () => {
                             playTime: 0,
                             songIds: [],
                         })
-                        consoleLog('LOG', 'append', '自动创建播放列表：' + v);
+                        consoleLog('LOG', 'indexDB', '自动创建播放列表：' + v);
                     });
 
                     const newPlaylists = await db.playlists.toArray();
@@ -208,14 +208,16 @@ export const SettingPage: FC = () => {
                 } else {
                     const albums = [...new Set(transformed.map(v=>v.songAlbum))];
 
-                    consoleLog('LOG', 'append', '自动创建播放列表' + albums.join(', '));
-                    albums.filter(v=>!listInDb.includes(v)).forEach(v => db.playlists.add({
-                        name: v,
-                        createTime: Date.now(),
-                        updateTime: Date.now(),
-                        playTime: 0,
-                        songIds: [],
-                    }));
+                    albums.filter(v=>!listInDb.includes(v)).forEach(v => {
+                        db.playlists.add({
+                            name: v,
+                            createTime: Date.now(),
+                            updateTime: Date.now(),
+                            playTime: 0,
+                            songIds: [],
+                        })
+                        consoleLog('LOG', 'indexDB', '自动创建播放列表：' + v);
+                    });
 
                     const newPlaylists = await db.playlists.toArray();
                     // 使用 reduce 方法将数组转换为 Map，key 为 name，value 为 Playlist 对象
