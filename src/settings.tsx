@@ -82,7 +82,10 @@ export const SettingPage: FC = () => {
                 folderPath = folderPath.replace(/\\/gi, "/");
             }
 
-            toast.update(sid, <>开始扫描文件夹<br/>{folderPath}</>, )
+            toast.update(sid, {
+                render: <>开始扫描文件夹<br/>{folderPath}</>,
+                type: "info",
+            });
 
             try {
                 // 读取目录内容
@@ -98,7 +101,10 @@ export const SettingPage: FC = () => {
                             // 如果是音频文件，加入结果
                             foundAudioFiles.push(fullPath);
                             consoleLog('INFO', 'file', fullPath);
-                            toast.update(fid, <>扫描到文件<br/>{fullPath}</>,);
+                            toast.update(fid, {
+                                render: <>扫描到文件<br/>{fullPath}</>,
+                                type: "info",
+                            });
                         }
                 }
             } catch (err) {
