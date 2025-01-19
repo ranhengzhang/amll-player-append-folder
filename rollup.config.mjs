@@ -4,6 +4,7 @@ import { minify } from "rollup-plugin-esbuild";
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import { defineConfig } from "rollup";
 import packageJson from "./package.json" with { type: "json" };
+import commonjs from '@rollup/plugin-commonjs';
 
 const isProduction = process.env.NODE_ENV === "production";
 const genSrcMap = process.env.SRCMAP === "true" || (!isProduction);
@@ -52,7 +53,7 @@ export default defineConfig({
         warn(warning);
     },
     external: ["react", "react/jsx-runtime", "react-dom", "jotai", "@radix-ui/themes"],
-    plugins: [nodeResolve(), json(), typescript(), isProduction && minify({
+    plugins: [commonjs(), nodeResolve(), json(), typescript(), isProduction && minify({
         banner: banner.join("\n"),
     })]
 });
