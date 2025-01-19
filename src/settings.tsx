@@ -4,20 +4,21 @@ import chalk from "chalk";
 import {Button, Card, Flex, Select, Text, TextField, TextProps} from "@radix-ui/themes";
 import {ArchiveIcon} from "@radix-ui/react-icons"
 import {open} from "@tauri-apps/plugin-dialog";
-import {toast, ToastContainer} from "react-toastify";
+import {Id, toast, ToastContainer, ToastContent, ToastOptions} from "react-toastify";
 import {platform} from "@tauri-apps/plugin-os";
 import {exists, stat, readDir} from "@tauri-apps/plugin-fs";
 import {join} from '@tauri-apps/api/path';
 import {db, Playlist, Song} from "./dexie";
 import md5 from "md5";
 import {readLocalMusicMetadata} from "./utils/player";
-import {path} from "@tauri-apps/api";
+import {path, window} from "@tauri-apps/api";
 import { useLiveQuery } from "dexie-react-hooks";
 import React from "react";
 
 const WARN_TAG = chalk.bgHex("#ee6900").hex("#FFFFFF")(" WARN ");
 const INFO_TAG = chalk.bgHex("#4764e0").hex("#FFFFFF")(" INFO ");
-const NAME_TAG = chalk.bgHex("#36a3c9").hex("#FFFFFF")(" SONG ");
+const  LOG_TAG = chalk.bgHex("#36a3c9").hex("#FFFFFF")(" INFO ");
+const NAME_TAG = chalk.bgHex("#8b8d98").hex("#FFFFFF")(" SONG ");
 
 export function consoleLog(type: string, func: string, info: string) {
 
@@ -28,7 +29,7 @@ export function consoleLog(type: string, func: string, info: string) {
         console.log(NAME_TAG + WARN_TAG, func + "::" + info)
 
     } else if (type === "LOG") {
-        console.log(NAME_TAG + NAME_TAG, func + "::" + info)
+        console.log(NAME_TAG + LOG_TAG, func + "::" + info)
 
     } else {
         console.log(NAME_TAG + WARN_TAG, func + "::" + info)
@@ -44,11 +45,15 @@ export const SettingPage: FC = () => {
     const [folder, setFolder] = useAtom(folderAtom)
     const [mod, setMod] = useAtom(modAtom);
 
-    consoleLog('LOG', 'playlist', playlists.map(v=>JSON.stringify(v)).join(', '));
+    // consoleLog('LOG', 'playlist', playlists.map(v=>JSON.stringify(v)).join(', '));
+
+    const toastList: Id[] = [];
+    const toastSet: Set<Id> = new Set<Id>([]);
 
     async function selectFolder() {
         const results = await open({
             directory: true,
+            recursive: true,
         });
         if (!results) return;
 
@@ -70,6 +75,7 @@ export const SettingPage: FC = () => {
         }
 
         const foundAudioFiles: string[] = [];
+        let falid:string[] = [];
 
         async function scanFiles(folderPath: string) {
             // 判断文件是否是音频文件
@@ -84,7 +90,6 @@ export const SettingPage: FC = () => {
 
             toast.update(sid, {
                 render: <>开始扫描文件夹<br/>{folderPath}</>,
-                type: "info",
             });
 
             try {
@@ -103,26 +108,27 @@ export const SettingPage: FC = () => {
                             consoleLog('INFO', 'file', fullPath);
                             toast.update(fid, {
                                 render: <>扫描到文件<br/>{fullPath}</>,
-                                type: "info",
                             });
                         }
                 }
             } catch (err) {
-                toast.error(<>扫描文件时出错<br/>{err}</>,);
+                falid.push(folderPath);
+                toast.warning(<>扫描文件时出错<br/>{err}</>, {position: "bottom-left"});
                 console.error('Error scanning files:', err);
             }
         }
 
-        const sid = toast.info('', );
-        const fid = toast.loading('', );
+        const sid = toast.info('', {autoClose: false});
+        const fid = toast.info('', {autoClose: false});
         await scanFiles(folder);
-        toast.done(sid);
-        toast.done(fid);
+        toast.update(sid, {render: '文件扫描结束', autoClose: 800});
+        toast.update(fid, {render: '目录遍历结束', autoClose: 800});
 
         async function appendFiles() {
             let current = 0;
             let success = 0;
             let errored = 0;
+            let faliedList: string[] = [];
             const transformed = (
                 await Promise.all(
                     foundAudioFiles.map(async (v) => {
@@ -153,6 +159,7 @@ export const SettingPage: FC = () => {
                             } satisfies Song;
                         } catch (err) {
                             errored += 1;
+                            faliedList.push(normalized);
                             consoleLog("WARN", normalized, "解析歌曲元数据以添加歌曲失败" + err);
                             console.log(err);
                             return null;
@@ -166,20 +173,23 @@ export const SettingPage: FC = () => {
                     }),
                 )
             ).filter((v) => !!v);
+            const aid = toast.info(<>解析完毕，开始添加到列表</>, {autoClose: false});
             await db.songs.bulkPut(transformed);
             if (mod.startsWith('$')) {
                 const listInDb = playlists.map(v=>v.name);
                 if (mod == '$songArtists') {
                     const artists = [...new Set(transformed.map(v=>v.songArtists))];
 
-                    consoleLog('LOG', 'append', '自动创建播放列表' + artists.join(', '));
-                    artists.filter(v=>!listInDb.includes(v)).forEach(v=> db.playlists.add({
+                    artists.filter(v=>!listInDb.includes(v)).forEach(v=> {
+                        db.playlists.add({
                             name: v,
                             createTime: Date.now(),
                             updateTime: Date.now(),
                             playTime: 0,
                             songIds: [],
-                    }));
+                        })
+                        consoleLog('LOG', 'append', '自动创建播放列表：' + v);
+                    });
 
                     const newPlaylists = await db.playlists.toArray();
                     // 使用 reduce 方法将数组转换为 Map，key 为 name，value 为 Playlist 对象
@@ -232,9 +242,11 @@ export const SettingPage: FC = () => {
                     obj.songIds.unshift(...shouldAddIds);
                 });
             }
+            toast.dismiss(aid);
 
             if (errored > 0 && success > 0) {
-                toast.warn(`已添加 ${success} 首歌曲，剩余 ${errored} 首歌曲添加失败`, );
+                consoleLog('WARN', 'file', '\n' + faliedList.join('\n'));
+                toast.warn(<>已添加 {success} 首歌曲，剩余 {errored} 首歌曲添加失败<br/>请按F12查看控制台日志</>, );
             } else if (success === 0) {
                 toast.error(`${errored} 首歌曲添加失败`, );
             } else {
@@ -242,9 +254,13 @@ export const SettingPage: FC = () => {
             }
         }
 
-        const lid = toast.loading(`正在解析音乐元数据以添加歌曲 ${foundAudioFiles.length} / 0`)
+        const lid = toast.info(`正在解析音乐元数据以添加歌曲 ${foundAudioFiles.length} / 0`, {autoClose: false});
         await appendFiles();
-        toast.done(lid);
+        toast.update(lid, {autoClose: 800, type: "info"});
+        if (falid.length) {
+            consoleLog('WARN', 'folder', '\n' + falid.join('\n'));
+            toast.error(<>有{falid.length}个文件夹扫描失败<br/>请按F12查看控制台日志并重新扫描</>, {autoClose: false});
+        }
     }
 
     useEffect(() => {
@@ -312,8 +328,6 @@ export const SettingPage: FC = () => {
         </Card>
         <ToastContainer
             position={'bottom-right'}
-            limit={5}
-            pauseOnHover={false}
-            autoClose={500}/>
+            pauseOnHover={false}/>
     </div>
 }
