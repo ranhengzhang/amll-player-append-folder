@@ -273,7 +273,7 @@ export const SettingPage: FC = () => {
                 <Flex direction="column" flexGrow="1">
                     <Text as="div">添加到播放列表</Text>
                 </Flex>
-                <Select.Root defaultValue="$songArtists" onValueChange={(v)=>setMod(v)}>
+                <Select.Root defaultValue={mod} onValueChange={(v)=>setMod(v)}>
                     <Select.Trigger />
                     <Select.Content>
                         <Select.Group>
