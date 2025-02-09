@@ -31,7 +31,7 @@ importers:
         version: 5.4.1
       dexie-react-hooks:
         specifier: ^1.1.7
-        version: 1.1.7(@types/react@18.3.11)(dexie@4.0.9)(react@18.3.1)
+        version: 1.1.7(@types/react@18.3.11)(dexie@4.0.11)(react@18.3.1)
       i:
         specifier: ^0.3.7
         version: 0.3.7
@@ -73,8 +73,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1
       dexie:
-        specifier: ^4.0.9
-        version: 4.0.9
+        specifier: ^4.0.11
+        version: 4.0.11
       esbuild:
         specifier: ^0.24.0
         version: 0.24.0
@@ -1083,8 +1083,8 @@ packages:
       dexie: ^3.2 || ^4.0.1-alpha
       react: '>=16'
 
-  dexie@4.0.9:
-    resolution: {integrity: sha512-VQG1huEVSAdDZssb9Bb9mFy+d3jAE0PT4d1nIRYlT46ip1fzbs1tXi0SlUayRDgV3tTbJG8ZRqAo2um49gtynA==, tarball: https://registry.npmmirror.com/dexie/-/dexie-4.0.9.tgz}
+  dexie@4.0.11:
+    resolution: {integrity: sha512-SOKO002EqlvBYYKQSew3iymBoN2EQ4BDw/3yprjh7kAfFzjBYkaMNa/pZvcA7HSWlcKSQb9XhPe3wKyQ0x4A8A==, tarball: https://registry.npmmirror.com/dexie/-/dexie-4.0.11.tgz}
 
   es-module-lexer@1.5.4:
     resolution: {integrity: sha512-MVNK56NiMrOwitFB7cqDwq0CQutbw+0BvLshJSse0MUNU+y1FC3bUS/AQg7oUng+/wKrrki7JfmwtVHkVfPLlw==}
@@ -2289,13 +2289,13 @@ snapshots:
 
   detect-node-es@1.1.0: {}
 
-  dexie-react-hooks@1.1.7(@types/react@18.3.11)(dexie@4.0.9)(react@18.3.1):
+  dexie-react-hooks@1.1.7(@types/react@18.3.11)(dexie@4.0.11)(react@18.3.1):
     dependencies:
       '@types/react': 18.3.11
-      dexie: 4.0.9
+      dexie: 4.0.11
       react: 18.3.1
 
-  dexie@4.0.9: {}
+  dexie@4.0.11: {}
 
   es-module-lexer@1.5.4: {}
 

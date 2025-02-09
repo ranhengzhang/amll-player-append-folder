@@ -15,29 +15,29 @@ import {path, window} from "@tauri-apps/api";
 import { useLiveQuery } from "dexie-react-hooks";
 import React from "react";
 
-const WARN_TAG = chalk.bgHex("#ee6900").hex("#FFFFFF")(" WARN ");
-const INFO_TAG = chalk.bgHex("#4764e0").hex("#FFFFFF")(" INFO ");
-const  LOG_TAG = chalk.bgHex("#36a3c9").hex("#FFFFFF")(" LOG ");
-const NAME_TAG = chalk.bgHex("#8b8d98").hex("#FFFFFF")(" SONG ");
+const WARN_TAG = chalk.bgHex("#de2a18").hex("#FFFFFF")(" WARN ");
+const INFO_TAG = chalk.bgHex("#2376b7").hex("#FFFFFF")(" INFO ");
+const  LOG_TAG = chalk.bgHex("#1ba784").hex("#FFFFFF")(" LOG ");
+const NAME_TAG = chalk.bgHex("#737c7b").hex("#FFFFFF")(" SONG ");
 
-function getChalk(bg: string, fg: string, func: string) {
-    return chalk.bgHex(bg).hex(fg)(` ${func} `);
+function getChalk(bg: string, fg: string, part: string) {
+    return chalk.bgHex(bg).hex(fg)(` ${part} `);
 }
 
-export function consoleLog(type: string, func: string, info: string) {
+export function consoleLog(type: string, part: string, info: string) {
 
-    const FUNC_TAG = getChalk("#ff587c", "#FFFFFF", func);
+    const PART_TAG = getChalk("#fa7e23", "#FFFFFF", part);
     if (type === "INFO") {
-        console.log(NAME_TAG + INFO_TAG + FUNC_TAG, info)
+        console.log(NAME_TAG + INFO_TAG + PART_TAG, info)
 
     } else if (type === "WARN") {
-        console.log(NAME_TAG + WARN_TAG + FUNC_TAG, info)
+        console.log(NAME_TAG + WARN_TAG + PART_TAG, info)
 
     } else if (type === "LOG") {
-        console.log(NAME_TAG + LOG_TAG + FUNC_TAG, info)
+        console.log(NAME_TAG + LOG_TAG + PART_TAG, info)
 
     } else {
-        console.log(NAME_TAG + NAME_TAG + FUNC_TAG, info)
+        console.log(NAME_TAG + NAME_TAG + PART_TAG, info)
     }
 
 }
