@@ -1,0 +1,29 @@
+name: 发布Release
+on:
+  workflow_dispatch:
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 签出代码
+        uses: actions/checkout@v3
+      - name: 设置版本号
+        run: echo "PACK_VERSION=$(jq -r .version package.json)" >> $GITHUB_ENV
+      - name: 安装 PNPM
+        uses: pnpm/action-setup@v4.0.0
+        with:
+          version: latest
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4.0.4
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - name: 安装依赖
+        run: pnpm i
+      - name: 构建项目
+        run: pnpm build
+      - name: 发布Release
+        run: gh release create "${{ env.PACK_VERSION }}" dist/*.js --title "v${{ env.PACK_VERSION }}" --notes ""
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
