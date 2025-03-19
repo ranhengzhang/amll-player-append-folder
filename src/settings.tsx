@@ -7,11 +7,10 @@ import {open} from "@tauri-apps/plugin-dialog";
 import {Id, toast, ToastContainer, ToastContent, ToastOptions} from "react-toastify";
 import {platform} from "@tauri-apps/plugin-os";
 import {exists, stat, readDir} from "@tauri-apps/plugin-fs";
-import {join} from '@tauri-apps/api/path';
+import {join, normalize} from '@tauri-apps/api/path';
 import {db, Playlist, Song} from "./dexie";
 import md5 from "md5";
 import {readLocalMusicMetadata} from "./utils/player";
-import {path, window} from "@tauri-apps/api";
 import { useLiveQuery } from "dexie-react-hooks";
 import React from "react";
 
@@ -140,7 +139,7 @@ export const SettingPage: FC = () => {
                         let normalized = v;
                         // console.log(v);
                         if (platform() !== "android" && platform() !== "ios") {
-                            normalized = (await path.normalize(v)).replace(/\\/gi, "/");
+                            normalized = (await normalize(v)).replace(/\\/gi, "/");
                         }
                         try {
                             consoleLog('INFO', 'song', JSON.stringify(await stat(v)));
@@ -182,10 +181,10 @@ export const SettingPage: FC = () => {
             await db.songs.bulkPut(transformed);
             if (mod.startsWith('$')) {
                 const listInDb = playlists.map(v=>v.name);
-                if (mod == '$songArtists') {
-                    const artists = [...new Set(transformed.map(v=>v.songArtists))];
+                if (mod === '$songArtists') {
+                    const artists = [...new Set(transformed.map(v => v.songArtists))];
 
-                    artists.filter(v=>!listInDb.includes(v)).forEach(v=> {
+                    artists.filter(v => !listInDb.includes(v)).forEach(v => {
                         db.playlists.add({
                             name: v,
                             createTime: Date.now(),
@@ -198,22 +197,24 @@ export const SettingPage: FC = () => {
 
                     const newPlaylists = await db.playlists.toArray();
                     // 使用 reduce 方法将数组转换为 Map，key 为 name，value 为 Playlist 对象
-                    const idMap = newPlaylists.filter(v=>artists.includes(v.name)).reduce((map, playlist) => {
+                    const idMap = newPlaylists.filter(v => artists.includes(v.name)).reduce((map, playlist) => {
                         map.set(playlist.name, playlist);
                         return map;
                     }, new Map<string, Playlist>());
                     for (const [name, list] of idMap) {
                         const shouldAddIds = transformed
-                            .filter(v=>name == v.songArtists)
-                            .filter(v=>!list?.songIds.includes(v.id))
-                            .map(v=>v.id)
+                            .filter(v => name == v.songArtists)
+                            .filter(v => !list?.songIds.includes(v.id))
+                            .map(v => v.id)
                             .reverse();
-                        await db.playlists.update(list.id, (obj) => { obj.songIds.unshift(...shouldAddIds); });
+                        await db.playlists.update(list.id, (obj) => {
+                            obj.songIds.unshift(...shouldAddIds);
+                        });
                     }
-                } else {
-                    const albums = [...new Set(transformed.map(v=>v.songAlbum))];
+                } else if (mod === '$songAlbum') {
+                    const albums = [...new Set(transformed.map(v => v.songAlbum))];
 
-                    albums.filter(v=>!listInDb.includes(v)).forEach(v => {
+                    albums.filter(v => !listInDb.includes(v)).forEach(v => {
                         db.playlists.add({
                             name: v,
                             createTime: Date.now(),
@@ -226,17 +227,51 @@ export const SettingPage: FC = () => {
 
                     const newPlaylists = await db.playlists.toArray();
                     // 使用 reduce 方法将数组转换为 Map，key 为 name，value 为 Playlist 对象
-                    const idMap = newPlaylists.filter(v=>albums.includes(v.name)).reduce((map, playlist) => {
+                    const idMap = newPlaylists.filter(v => albums.includes(v.name)).reduce((map, playlist) => {
                         map.set(playlist.name, playlist);
                         return map;
                     }, new Map<string, Playlist>());
                     for (const [name, list] of idMap) {
                         const shouldAddIds = transformed
-                            .filter(v=>name == v.songAlbum)
-                            .filter(v=>!list?.songIds.includes(v.id))
-                            .map(v=>v.id)
+                            .filter(v => name == v.songAlbum)
+                            .filter(v => !list?.songIds.includes(v.id))
+                            .map(v => v.id)
                             .reverse();
-                        await db.playlists.update(list.id, (obj) => { obj.songIds.unshift(...shouldAddIds); });
+                        await db.playlists.update(list.id, (obj) => {
+                            obj.songIds.unshift(...shouldAddIds);
+                        });
+                    }
+                } else if (mod === '$songFolder') {
+                    const dirname = (path: string)=>path.split('/').at(-2);
+
+                    const folders:string[] = [...new Set(transformed.map(v => dirname(v.filePath)))];
+
+                    folders.filter(v => !listInDb.includes(v)).forEach(v => {
+                        db.playlists.add({
+                            name: v,
+                            createTime: Date.now(),
+                            updateTime: Date.now(),
+                            playTime: 0,
+                            songIds: [],
+                        })
+                        consoleLog('LOG', 'indexDB', '自动创建播放列表：' + v);
+                    });
+
+                    const newPlaylists = await db.playlists.toArray();
+                    // 使用 reduce 方法将数组转换为 Map，key 为 name，value 为 Playlist 对象
+                    const idMap = newPlaylists.filter(v => folders.includes(v.name)).reduce((map, playlist) => {
+                        map.set(playlist.name, playlist);
+                        return map;
+                    }, new Map<string, Playlist>());
+                    for (const [name, list] of idMap) {
+                        const shouldAddIds = transformed
+                            .filter(v => name == dirname(v.filePath))
+                            .filter(v => !list?.songIds.includes(v.id))
+                            .map(v => v.id)
+                            .reverse();
+                        await db.playlists.update(list.id, (obj) => {
+                            obj.songIds.unshift(...shouldAddIds);
+                        });
                     }
                 }
             } else {
@@ -310,9 +345,10 @@ export const SettingPage: FC = () => {
                     <Select.Trigger />
                     <Select.Content>
                         <Select.Group>
-                            <Select.Label>自动列表</Select.Label>
+                            <Select.Label>自动列表(可能产生大量播放列表)</Select.Label>
                             <Select.Item value="$songArtists">对应歌手</Select.Item>
                             <Select.Item value="$songAlbum">对应专辑</Select.Item>
+                            <Select.Item value="$songFolder">原文件夹</Select.Item>
                         </Select.Group>
                         <Select.Separator />
                         <Select.Group>
